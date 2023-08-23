@@ -14,6 +14,8 @@
 #include <learnopengl/camera.h>
 #include <learnopengl/model.h>
 
+#include "object.h"
+
 #include <iostream>
 
 void framebuffer_size_callback(GLFWwindow *window, int width, int height);
@@ -59,8 +61,7 @@ struct ProgramState {
     glm::vec3 backpackPosition = glm::vec3(0.0f);
     float backpackScale = 1.0f;
     PointLight pointLight;
-    ProgramState()
-            : camera(glm::vec3(0.0f, 0.0f, 3.0f)) {}
+    ProgramState() : camera(glm::vec3(0.0f, 10.0f, -8.0f)) {}
 
     void SaveToFile(std::string filename);
 
@@ -108,6 +109,7 @@ int main() {
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    glfwWindowHint(GLFW_SAMPLES, 4);
 
 #ifdef __APPLE__
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
@@ -137,10 +139,10 @@ int main() {
     }
 
     // tell stb_image.h to flip loaded texture's on the y-axis (before loading model).
-    stbi_set_flip_vertically_on_load(true);
+    //stbi_set_flip_vertically_on_load(true);
 
     programState = new ProgramState;
-    programState->LoadFromFile("resources/program_state.txt");
+    //programState->LoadFromFile("resources/program_state.txt");
     if (programState->ImGuiEnabled) {
         glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
     }
@@ -158,6 +160,7 @@ int main() {
     // configure global opengl state
     // -----------------------------
     glEnable(GL_DEPTH_TEST);
+    glEnable(GL_MULTISAMPLE);
 
     // build and compile shaders
     // -------------------------
@@ -165,14 +168,54 @@ int main() {
 
     // load models
     // -----------
-    Model ourModel("resources/objects/backpack/backpack.obj");
-    ourModel.SetShaderTextureNamePrefix("material.");
+    Object castle;
+    castle.setModel(new Model("resources/objects/castle/Castle OBJ.obj"));
+    castle.setScale(glm::vec3(0.25));
+    castle.setShader(&ourShader);
+
+    Object henri;
+    henri.setModel(new Model("resources/objects/henri/stegosaurus.obj"));
+    henri.setScale(glm::vec3(0.007));
+    henri.setShader(&ourShader);
+    henri.translate(glm::vec3(-30.0, 17, 400.0));
+
+    Object tank;
+    tank.setModel(new Model("resources/objects/tank/T34.vox.obj"));
+    tank.setScale(glm::vec3(0.4));
+    tank.setShader(&ourShader);
+    tank.rotate(glm::rotate(glm::mat4(1.0f), glm::radians(-135.0f), glm::vec3(0.0, 1.0, 0.0)));
+    tank.translate(glm::vec3(2, 0.1, 5));
+
+    Object tree_bare;
+    tree_bare.setModel(new Model("resources/objects/trees/Trunk_3.obj"));
+    tree_bare.setScale(glm::vec3(0.6));
+    tree_bare.setShader(&ourShader);
+    tree_bare.translate(glm::vec3(5, 0, 0));
+
+    Object tree;
+    tree.setModel(new Model("resources/objects/trees/Tree_3.obj"));
+    tree.setScale(glm::vec3(0.6));
+    tree.setShader(&ourShader);
+    tree.translate(glm::vec3(-7, 0, 13));
+
+    Object trunk;
+    trunk.setModel(new Model("resources/objects/trees/Log_5.obj"));
+    trunk.setScale(glm::vec3(0.6));
+    trunk.setShader(&ourShader);
+    trunk.rotate(glm::rotate(glm::mat4(1.0f), glm::radians(-135.0f), glm::vec3(0.0, 1.0, 0.0)));
+    trunk.translate(glm::vec3(12, 0, -7));
+
+    Object rock;
+    rock.setModel(new Model("resources/objects/rock/Rock1.obj"));
+    rock.setScale(glm::vec3(0.6));
+    rock.setShader(&ourShader);
+    rock.translate(glm::vec3(9, 0, 13));
 
     PointLight& pointLight = programState->pointLight;
-    pointLight.position = glm::vec3(4.0f, 4.0, 0.0);
-    pointLight.ambient = glm::vec3(0.1, 0.1, 0.1);
-    pointLight.diffuse = glm::vec3(0.6, 0.6, 0.6);
-    pointLight.specular = glm::vec3(1.0, 1.0, 1.0);
+    pointLight.position = glm::vec3(16.0f, 16.0, 0.0);
+    pointLight.ambient = glm::vec3(10.0);
+    pointLight.diffuse = glm::vec3(6.0);
+    pointLight.specular = glm::vec3(10.0);
 
     pointLight.constant = 1.0f;
     pointLight.linear = 0.09f;
@@ -204,7 +247,7 @@ int main() {
 
         // don't forget to enable shader before setting uniforms
         ourShader.use();
-        pointLight.position = glm::vec3(4.0 * cos(currentFrame), 4.0f, 4.0 * sin(currentFrame));
+        pointLight.position = glm::vec3(16.0 * cos(currentFrame), 16.0f, 16.0 * sin(currentFrame));
         ourShader.setVec3("pointLight.position", pointLight.position);
         ourShader.setVec3("pointLight.ambient", pointLight.ambient);
         ourShader.setVec3("pointLight.diffuse", pointLight.diffuse);
@@ -227,7 +270,14 @@ int main() {
                                programState->backpackPosition); // translate it down so it's at the center of the scene
         model = glm::scale(model, glm::vec3(programState->backpackScale));    // it's a bit too big for our scene, so scale it down
         ourShader.setMat4("model", model);
-        ourModel.Draw(ourShader);
+
+        castle.render();
+        henri.render();
+        tank.render();
+        tree_bare.render();
+        tree.render();
+        trunk.render();
+        rock.render();
 
         if (programState->ImGuiEnabled)
             DrawImGui(programState);
@@ -240,7 +290,7 @@ int main() {
         glfwPollEvents();
     }
 
-    programState->SaveToFile("resources/program_state.txt");
+    //programState->SaveToFile("resources/program_state.txt");
     delete programState;
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
