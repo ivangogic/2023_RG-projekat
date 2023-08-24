@@ -28,6 +28,9 @@ void processInput(GLFWwindow *window);
 
 void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods);
 
+void renderScene(Shader shader);
+vector<Object *> objects;
+
 // settings
 const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
@@ -165,57 +168,84 @@ int main() {
     // build and compile shaders
     // -------------------------
     Shader ourShader("resources/shaders/2.model_lighting.vs", "resources/shaders/2.model_lighting.fs");
+    
+    
+    Shader simpleDepthShader("resources/shaders/3.2.1.point_shadows_depth.vs", "resources/shaders/3.2.1.point_shadows_depth.fs", "resources/shaders/3.2.1.point_shadows_depth.gs");
 
+    unsigned int depthMapFBO;
+    glGenFramebuffers(1, &depthMapFBO);
+    unsigned int depthCubemap;
+    glGenTextures(1, &depthCubemap);
+    
+    const unsigned int SHADOW_WIDTH = 1024, SHADOW_HEIGHT = 1024;
+    glBindTexture(GL_TEXTURE_CUBE_MAP, depthCubemap);
+    for (unsigned int i = 0; i < 6; ++i)
+        glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_DEPTH_COMPONENT,
+                     SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
+    glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, depthCubemap, 0);
+    glDrawBuffer(GL_NONE);
+    glReadBuffer(GL_NONE);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    
+    
     // load models
     // -----------
     Object castle;
     castle.setModel(new Model("resources/objects/castle/Castle OBJ.obj"));
     castle.setScale(glm::vec3(0.25));
-    castle.setShader(&ourShader);
+    objects.push_back(&castle);
 
     Object henri;
     henri.setModel(new Model("resources/objects/henri/stegosaurus.obj"));
     henri.setScale(glm::vec3(0.007));
-    henri.setShader(&ourShader);
     henri.translate(glm::vec3(-30.0, 17, 400.0));
+    objects.push_back(&henri);
 
     Object tank;
     tank.setModel(new Model("resources/objects/tank/T34.vox.obj"));
     tank.setScale(glm::vec3(0.4));
-    tank.setShader(&ourShader);
     tank.rotate(glm::rotate(glm::mat4(1.0f), glm::radians(-135.0f), glm::vec3(0.0, 1.0, 0.0)));
     tank.translate(glm::vec3(2, 0.1, 5));
+    objects.push_back(&tank);
 
     Object tree_bare;
     tree_bare.setModel(new Model("resources/objects/trees/Trunk_3.obj"));
     tree_bare.setScale(glm::vec3(0.6));
-    tree_bare.setShader(&ourShader);
     tree_bare.translate(glm::vec3(5, 0, 0));
+    objects.push_back(&tree_bare);
 
     Object tree;
     tree.setModel(new Model("resources/objects/trees/Tree_3.obj"));
     tree.setScale(glm::vec3(0.6));
-    tree.setShader(&ourShader);
     tree.translate(glm::vec3(-7, 0, 13));
+    objects.push_back(&tree);
 
     Object trunk;
     trunk.setModel(new Model("resources/objects/trees/Log_5.obj"));
     trunk.setScale(glm::vec3(0.6));
-    trunk.setShader(&ourShader);
     trunk.rotate(glm::rotate(glm::mat4(1.0f), glm::radians(-135.0f), glm::vec3(0.0, 1.0, 0.0)));
     trunk.translate(glm::vec3(12, 0, -7));
+    objects.push_back(&trunk);
 
     Object rock;
     rock.setModel(new Model("resources/objects/rock/Rock1.obj"));
     rock.setScale(glm::vec3(0.6));
-    rock.setShader(&ourShader);
     rock.translate(glm::vec3(9, 0, 13));
+    objects.push_back(&rock);
 
     PointLight& pointLight = programState->pointLight;
-    pointLight.position = glm::vec3(16.0f, 16.0, 0.0);
-    pointLight.ambient = glm::vec3(10.0);
-    pointLight.diffuse = glm::vec3(6.0);
-    pointLight.specular = glm::vec3(10.0);
+    pointLight.position = glm::vec3( 0.0f, 5.0, 5.0);
+    pointLight.ambient = glm::vec3(1.0);
+    pointLight.diffuse = glm::vec3(3.0);
+    pointLight.specular = glm::vec3(1.0);
 
     pointLight.constant = 1.0f;
     pointLight.linear = 0.09f;
@@ -245,9 +275,46 @@ int main() {
         glClearColor(programState->clearColor.r, programState->clearColor.g, programState->clearColor.b, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        // don't forget to enable shader before setting uniforms
+        
+        // 0. create depth cubemap transformation matrices
+        // -----------------------------------------------
+        float near_plane = 1.0f;
+        float far_plane = 25.0f;
+        glm::mat4 shadowProj = glm::perspective(glm::radians(90.0f), (float)SHADOW_WIDTH / (float)SHADOW_HEIGHT, near_plane, far_plane);
+        std::vector<glm::mat4> shadowTransforms;
+        shadowTransforms.push_back(shadowProj * glm::lookAt(pointLight.position, pointLight.position + glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f)));
+        shadowTransforms.push_back(shadowProj * glm::lookAt(pointLight.position, pointLight.position + glm::vec3(-1.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f)));
+        shadowTransforms.push_back(shadowProj * glm::lookAt(pointLight.position, pointLight.position + glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f)));
+        shadowTransforms.push_back(shadowProj * glm::lookAt(pointLight.position, pointLight.position + glm::vec3(0.0f, -1.0f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f)));
+        shadowTransforms.push_back(shadowProj * glm::lookAt(pointLight.position, pointLight.position + glm::vec3(0.0f, 0.0f, 1.0f), glm::vec3(0.0f, -1.0f, 0.0f)));
+        shadowTransforms.push_back(shadowProj * glm::lookAt(pointLight.position, pointLight.position + glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.0f, -1.0f, 0.0f)));
+
+        // 1. render scene to depth cubemap
+        // --------------------------------
+        glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
+        glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
+        glClear(GL_DEPTH_BUFFER_BIT);
+        simpleDepthShader.use();
+        for (unsigned int i = 0; i < 6; ++i)
+            simpleDepthShader.setMat4("shadowMatrices[" + std::to_string(i) + "]", shadowTransforms[i]);
+        simpleDepthShader.setFloat("far_plane", far_plane);
+        simpleDepthShader.setVec3("lightPos", pointLight.position);
+        renderScene(simpleDepthShader);
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+        // 2. render scene as normal 
+        // -------------------------
+        glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         ourShader.use();
-        pointLight.position = glm::vec3(16.0 * cos(currentFrame), 16.0f, 16.0 * sin(currentFrame));
+        ourShader.setInt("depthMap", 1);
+        ourShader.setFloat("far_plane", far_plane);
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, depthCubemap);
+        
+
+        // don't forget to enable shader before setting uniforms
+//        pointLight.position = glm::vec3(0.0f, 5.0f, 0.0f);
         ourShader.setVec3("pointLight.position", pointLight.position);
         ourShader.setVec3("pointLight.ambient", pointLight.ambient);
         ourShader.setVec3("pointLight.diffuse", pointLight.diffuse);
@@ -264,20 +331,9 @@ int main() {
         ourShader.setMat4("projection", projection);
         ourShader.setMat4("view", view);
 
-        // render the loaded model
-        glm::mat4 model = glm::mat4(1.0f);
-        model = glm::translate(model,
-                               programState->backpackPosition); // translate it down so it's at the center of the scene
-        model = glm::scale(model, glm::vec3(programState->backpackScale));    // it's a bit too big for our scene, so scale it down
-        ourShader.setMat4("model", model);
 
-        castle.render();
-        henri.render();
-        tank.render();
-        tree_bare.render();
-        tree.render();
-        trunk.render();
-        rock.render();
+        renderScene(ourShader);
+
 
         if (programState->ImGuiEnabled)
             DrawImGui(programState);
@@ -395,4 +451,9 @@ void key_callback(GLFWwindow *window, int key, int scancode, int action, int mod
             glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
         }
     }
+}
+
+void renderScene(Shader shader) {
+    for (auto& object : objects)
+        object->render(&shader);
 }
