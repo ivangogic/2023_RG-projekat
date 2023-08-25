@@ -203,10 +203,14 @@ int main() {
     henri.setScale(glm::vec3(0.007));
     henri.translate(glm::vec3(-14.0, 17, 400.0));
     objects.push_back(&henri);
-    int len = 0;
+    int len = 0, stone_wait = 0;
+    glm::vec3 henri_curr = henri.getPosition(), henri_init = henri.getPosition();
     auto center = henri.getPosition() + glm::vec3(200.0f, 0.0f, 500.0f);
-    float curr = 0.0f, total = 100.0f;
     float radius = 200.0f;
+    float curr = 0.0f, total = 100.0f;
+    float curr1 = 0.0f, total1 = 100.0f;
+    float curr2 = 0.0f, total2 = 100.0f;
+    float curr3 = 0.0f, total3 = 100.0f;
 
     Object tank;
     tank.setModel(new Model("resources/objects/tank/T34.vox.obj"));
@@ -334,8 +338,11 @@ int main() {
 
 
         renderScene(&simpleShader);
+
+        henri:
         if (len < 500) {
             henri.translate(glm::vec3(0.0f, 0.0f, 2.0f));
+            henri_curr += glm::vec3(0.0f, 0.0f, 2.0f);
             len += 2;
         }
         else if (curr < total) {
@@ -343,6 +350,7 @@ int main() {
             curr += 1.0f;
             float angle = 90.0f * curr / total;
             auto henri_pos = center + glm::vec3(-radius * cos(glm::radians(angle)), 0.0f, radius *  sin(glm::radians(angle)));
+            henri_curr = henri_pos;
             auto henri_pos1 = glm::vec3(
                     -henri_pos.z * sin(glm::radians(angle)) + henri_pos.x * cos(glm::radians(angle)),
                     henri_pos.y,
@@ -353,6 +361,110 @@ int main() {
 
             henri.setRotation(glm::rotate(glm::mat4(1), glm::radians(angle), glm::vec3(0.0, 1.0, 0.0)));
         }
+        else if (len < 800) {
+            float angle = 90.0f;
+            henri_curr += glm::vec3(2.0f, 0.0f, 0.0f);
+
+            auto henri_pos1 = glm::vec3(
+                    -henri_curr.z * sin(glm::radians(angle)) + henri_curr.x * cos(glm::radians(angle)),
+                    henri_curr.y,
+                    henri_curr.z * cos(glm::radians(angle)) + henri_curr.x * sin(glm::radians(angle))
+            );
+
+            henri.setPosition(henri_pos1);
+            henri.setRotation(glm::rotate(glm::mat4(1), glm::radians(angle), glm::vec3(0.0, 1.0, 0.0)));
+
+            len += 2;
+        }
+        else if (curr1 < total1) {
+            if (stone_wait < 50) {
+                stone_wait++;
+                goto end;
+            }
+            curr1 += 1.0f;
+            float angle = 90.0f + 180.0f * curr1 / total1;
+            auto henri_pos1 = glm::vec3(
+                    -henri_curr.z * sin(glm::radians(angle)) + henri_curr.x * cos(glm::radians(angle)),
+                    henri_curr.y,
+                    henri_curr.z * cos(glm::radians(angle)) + henri_curr.x * sin(glm::radians(angle))
+            );
+
+            henri.setPosition(henri_pos1);
+
+            henri.setRotation(glm::rotate(glm::mat4(1), glm::radians(angle), glm::vec3(0.0, 1.0, 0.0)));
+        }
+        else if (len < 1100) {
+            float angle = 270.0f;
+            henri_curr -= glm::vec3(2.0f, 0.0f, 0.0f);
+
+            auto henri_pos1 = glm::vec3(
+                    -henri_curr.z * sin(glm::radians(angle)) + henri_curr.x * cos(glm::radians(angle)),
+                    henri_curr.y,
+                    henri_curr.z * cos(glm::radians(angle)) + henri_curr.x * sin(glm::radians(angle))
+            );
+
+            henri.setPosition(henri_pos1);
+            henri.setRotation(glm::rotate(glm::mat4(1), glm::radians(angle), glm::vec3(0.0, 1.0, 0.0)));
+
+            len += 2;
+        }
+        else if (curr2 < total2) {
+            curr2 += 1.0f;
+            float angle = 270.0f - 90.0f * curr2 / total2;
+            float circle_angle = 90.0f - 90.0f * curr2 / total2;
+
+            auto henri_pos = center + glm::vec3(-radius * cos(glm::radians(circle_angle)), 0.0f, radius *  sin(glm::radians(circle_angle)));
+            henri_curr = henri_pos;
+            auto henri_pos1 = glm::vec3(
+                    -henri_pos.z * sin(glm::radians(angle)) + henri_pos.x * cos(glm::radians(angle)),
+                    henri_pos.y,
+                    henri_pos.z * cos(glm::radians(angle)) + henri_pos.x * sin(glm::radians(angle))
+            );
+
+            henri.setPosition(henri_pos1);
+
+            henri.setRotation(glm::rotate(glm::mat4(1), glm::radians(angle), glm::vec3(0.0, 1.0, 0.0)));
+        }
+        else if (len < 1600) {
+            float angle = 180.0f;
+            henri_curr -= glm::vec3(0.0f, 0.0f, 2.0f);
+
+            auto henri_pos1 = glm::vec3(
+                    -henri_curr.z * sin(glm::radians(angle)) + henri_curr.x * cos(glm::radians(angle)),
+                    henri_curr.y,
+                    henri_curr.z * cos(glm::radians(angle)) + henri_curr.x * sin(glm::radians(angle))
+            );
+
+            henri.setPosition(henri_pos1);
+            henri.setRotation(glm::rotate(glm::mat4(1), glm::radians(angle), glm::vec3(0.0, 1.0, 0.0)));
+
+            len += 2;
+        }
+        else if (curr3 < total3) {
+            curr3 += 1.0f;
+            float angle = 180.0f + 180.0f * curr3 / total3;
+            auto henri_pos1 = glm::vec3(
+                    -henri_curr.z * sin(glm::radians(angle)) + henri_curr.x * cos(glm::radians(angle)),
+                    henri_curr.y,
+                    henri_curr.z * cos(glm::radians(angle)) + henri_curr.x * sin(glm::radians(angle))
+            );
+
+            henri.setPosition(henri_pos1);
+
+            henri.setRotation(glm::rotate(glm::mat4(1), glm::radians(angle), glm::vec3(0.0, 1.0, 0.0)));
+        }
+        else {
+            henri.setRotation(glm::mat4(1.0f));
+            henri_curr = henri_init;
+            len = 0, stone_wait = 0;
+            curr = 0.0f, total = 100.0f;
+            curr1 = 0.0f, total1 = 100.0f;
+            curr2 = 0.0f, total2 = 100.0f;
+            curr3 = 0.0f, total3 = 100.0f;
+            goto henri;
+        }
+        end:
+
 
         if (programState->ImGuiEnabled)
             DrawImGui(programState);
