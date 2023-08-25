@@ -21,8 +21,10 @@ public:
     Object();
     ~Object() = default;
 
-    void setScale(glm::vec3 scale);
-    void setModel(Model* model);
+    void setPosition(glm::vec3 p);
+    void setRotation(glm::mat4 r);
+    void setScale(glm::vec3 s);
+    void setModel(Model* m);
 
     glm::vec3 getPosition();
 
@@ -38,6 +40,12 @@ Object::Object() {
     model = nullptr;
 };
 
+void Object::setPosition(glm::vec3 p) {
+    position = p;
+}
+void Object::setRotation(glm::mat4 r) {
+    rotation = r;
+}
 void Object::setScale(glm::vec3 s) {
     scale = s;
 }
@@ -58,9 +66,9 @@ void Object::rotate(glm::mat4 r) {
 }
 void Object::render(Shader *sh) {
     glm::mat4 modelMatrix = glm::mat4(1.0f);
-    modelMatrix *= rotation;
     modelMatrix = glm::scale(modelMatrix, scale);
-    modelMatrix = glm::translate(modelMatrix, getPosition());
+    modelMatrix *= rotation;
+    modelMatrix = glm::translate(modelMatrix, position);
 
     sh->setMat4("model", modelMatrix);
     model->Draw(*sh);

@@ -28,7 +28,7 @@ void processInput(GLFWwindow *window);
 
 void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods);
 
-void renderScene(Shader shader);
+void renderScene(Shader *shader);
 vector<Object *> objects;
 
 // settings
@@ -167,28 +167,23 @@ int main() {
 
     // build and compile shaders
     // -------------------------
-    Shader ourShader("resources/shaders/2.model_lighting.vs", "resources/shaders/2.model_lighting.fs");
-    
-    
+    Shader simpleShader("resources/shaders/model_lighting.vs", "resources/shaders/model_lighting.fs");
     Shader simpleDepthShader("resources/shaders/3.2.1.point_shadows_depth.vs", "resources/shaders/3.2.1.point_shadows_depth.fs", "resources/shaders/3.2.1.point_shadows_depth.gs");
 
+    const unsigned int SHADOW_WIDTH = 1024, SHADOW_HEIGHT = 1024;
     unsigned int depthMapFBO;
     glGenFramebuffers(1, &depthMapFBO);
     unsigned int depthCubemap;
     glGenTextures(1, &depthCubemap);
-    
-    const unsigned int SHADOW_WIDTH = 1024, SHADOW_HEIGHT = 1024;
     glBindTexture(GL_TEXTURE_CUBE_MAP, depthCubemap);
     for (unsigned int i = 0; i < 6; ++i)
         glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_DEPTH_COMPONENT,
                      SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
-
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-
     glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
     glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, depthCubemap, 0);
     glDrawBuffer(GL_NONE);
@@ -206,8 +201,12 @@ int main() {
     Object henri;
     henri.setModel(new Model("resources/objects/henri/stegosaurus.obj"));
     henri.setScale(glm::vec3(0.007));
-    henri.translate(glm::vec3(-30.0, 17, 400.0));
+    henri.translate(glm::vec3(-14.0, 17, 400.0));
     objects.push_back(&henri);
+    int len = 0;
+    auto center = henri.getPosition() + glm::vec3(200.0f, 0.0f, 500.0f);
+    float curr = 0.0f, total = 100.0f;
+    float radius = 200.0f;
 
     Object tank;
     tank.setModel(new Model("resources/objects/tank/T34.vox.obj"));
@@ -261,9 +260,13 @@ int main() {
     while (!glfwWindowShouldClose(window)) {
         // per-frame time logic
         // --------------------
-        float currentFrame = glfwGetTime();
+        auto currentFrame = static_cast<float>(glfwGetTime());
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
+
+        glm::mat4 projection = glm::perspective(glm::radians(programState->camera.Zoom),
+                                                (float) SCR_WIDTH / (float) SCR_HEIGHT, 0.1f, 100.0f);
+        glm::mat4 view = programState->camera.GetViewMatrix();
 
         // input
         // -----
@@ -299,41 +302,57 @@ int main() {
             simpleDepthShader.setMat4("shadowMatrices[" + std::to_string(i) + "]", shadowTransforms[i]);
         simpleDepthShader.setFloat("far_plane", far_plane);
         simpleDepthShader.setVec3("lightPos", pointLight.position);
-        renderScene(simpleDepthShader);
+        simpleDepthShader.setMat4("projection", projection);
+        simpleDepthShader.setMat4("view", view);
+        renderScene(&simpleDepthShader);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
         // 2. render scene as normal 
         // -------------------------
         glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        ourShader.use();
-        ourShader.setInt("depthMap", 1);
-        ourShader.setFloat("far_plane", far_plane);
+        simpleShader.use();
+        simpleShader.setInt("depthMap", 1);
+        simpleShader.setFloat("far_plane", far_plane);
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_CUBE_MAP, depthCubemap);
-        
+
 
         // don't forget to enable shader before setting uniforms
 //        pointLight.position = glm::vec3(0.0f, 5.0f, 0.0f);
-        ourShader.setVec3("pointLight.position", pointLight.position);
-        ourShader.setVec3("pointLight.ambient", pointLight.ambient);
-        ourShader.setVec3("pointLight.diffuse", pointLight.diffuse);
-        ourShader.setVec3("pointLight.specular", pointLight.specular);
-        ourShader.setFloat("pointLight.constant", pointLight.constant);
-        ourShader.setFloat("pointLight.linear", pointLight.linear);
-        ourShader.setFloat("pointLight.quadratic", pointLight.quadratic);
-        ourShader.setVec3("viewPosition", programState->camera.Position);
-        ourShader.setFloat("material.shininess", 32.0f);
-        // view/projection transformations
-        glm::mat4 projection = glm::perspective(glm::radians(programState->camera.Zoom),
-                                                (float) SCR_WIDTH / (float) SCR_HEIGHT, 0.1f, 100.0f);
-        glm::mat4 view = programState->camera.GetViewMatrix();
-        ourShader.setMat4("projection", projection);
-        ourShader.setMat4("view", view);
+        simpleShader.setVec3("pointLight.position", pointLight.position);
+        simpleShader.setVec3("pointLight.ambient", pointLight.ambient);
+        simpleShader.setVec3("pointLight.diffuse", pointLight.diffuse);
+        simpleShader.setVec3("pointLight.specular", pointLight.specular);
+        simpleShader.setFloat("pointLight.constant", pointLight.constant);
+        simpleShader.setFloat("pointLight.linear", pointLight.linear);
+        simpleShader.setFloat("pointLight.quadratic", pointLight.quadratic);
+        simpleShader.setVec3("viewPosition", programState->camera.Position);
+        simpleShader.setFloat("material.shininess", 32.0f);
+        simpleShader.setMat4("projection", projection);
+        simpleShader.setMat4("view", view);
 
 
-        renderScene(ourShader);
+        renderScene(&simpleShader);
+        if (len < 500) {
+            henri.translate(glm::vec3(0.0f, 0.0f, 2.0f));
+            len += 2;
+        }
+        else if (curr < total) {
+//            henri.translate(glm::vec3(2.0f, 0.0f, 2.0f));
+            curr += 1.0f;
+            float angle = 90.0f * curr / total;
+            auto henri_pos = center + glm::vec3(-radius * cos(glm::radians(angle)), 0.0f, radius *  sin(glm::radians(angle)));
+            auto henri_pos1 = glm::vec3(
+                    -henri_pos.z * sin(glm::radians(angle)) + henri_pos.x * cos(glm::radians(angle)),
+                    henri_pos.y,
+                    henri_pos.z * cos(glm::radians(angle)) + henri_pos.x * sin(glm::radians(angle))
+                    );
 
+            henri.setPosition(henri_pos1);
+
+            henri.setRotation(glm::rotate(glm::mat4(1), glm::radians(angle), glm::vec3(0.0, 1.0, 0.0)));
+        }
 
         if (programState->ImGuiEnabled)
             DrawImGui(programState);
@@ -453,7 +472,7 @@ void key_callback(GLFWwindow *window, int key, int scancode, int action, int mod
     }
 }
 
-void renderScene(Shader shader) {
+void renderScene(Shader *shader) {
     for (auto& object : objects)
-        object->render(&shader);
+        object->render(shader);
 }
