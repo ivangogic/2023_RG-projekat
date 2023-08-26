@@ -167,6 +167,7 @@ int main() {
     glEnable(GL_BLEND);
     glDepthFunc(GL_LESS);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+//    glEnable(GL_CULL_FACE);
 
     // build and compile shaders
     // -------------------------
@@ -199,7 +200,7 @@ int main() {
     Object castle;
     castle.setModel(new Model("resources/objects/castle/Castle OBJ.obj"));
     castle.setScale(glm::vec3(0.25));
-    objects.push_back(&castle);
+//    objects.push_back(&castle);
 
     Object henri;
     henri.setModel(new Model("resources/objects/henri/stegosaurus.obj"));
@@ -311,6 +312,7 @@ int main() {
         simpleDepthShader.setVec3("lightPos", pointLight.position);
         simpleDepthShader.setMat4("projection", projection);
         simpleDepthShader.setMat4("view", view);
+        castle.render(&simpleDepthShader);
         renderScene(&simpleDepthShader);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
@@ -340,6 +342,9 @@ int main() {
         simpleShader.setMat4("view", view);
 
 
+        glDisable(GL_CULL_FACE);
+        castle.render(&simpleShader);
+        glEnable(GL_CULL_FACE);
         renderScene(&simpleShader);
 
         henri:
