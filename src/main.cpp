@@ -27,6 +27,7 @@ void scroll_callback(GLFWwindow *window, double xoffset, double yoffset);
 void processInput(GLFWwindow *window);
 
 void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods);
+bool normal = false;
 
 void renderScene(Shader *shader);
 vector<Object *> objects;
@@ -192,6 +193,7 @@ int main() {
     Shader simpleShader("resources/shaders/model_lighting.vs", "resources/shaders/model_lighting.fs");
     Shader simpleDepthShader("resources/shaders/3.2.1.point_shadows_depth.vs", "resources/shaders/3.2.1.point_shadows_depth.fs", "resources/shaders/3.2.1.point_shadows_depth.gs");
     Shader skyboxShader("resources/shaders/6.1.skybox.vs", "resources/shaders/6.1.skybox.fs");
+    Shader normalShader("resources/shaders/normal.vs", "resources/shaders/normal.fs");
 
     const unsigned int SHADOW_WIDTH = 1024, SHADOW_HEIGHT = 1024;
     unsigned int depthMapFBO;
@@ -406,80 +408,115 @@ int main() {
         glClearColor(programState->clearColor.r, programState->clearColor.g, programState->clearColor.b, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        
-        // 0. create depth cubemap transformation matrices
-        // -----------------------------------------------
-        float near_plane = 1.0f;
-        float far_plane = 25.0f;
-        glm::mat4 shadowProj = glm::perspective(glm::radians(90.0f), (float)SHADOW_WIDTH / (float)SHADOW_HEIGHT, near_plane, far_plane);
-        std::vector<glm::mat4> shadowTransforms;
-        shadowTransforms.push_back(shadowProj * glm::lookAt(pointLight.position, pointLight.position + glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f)));
-        shadowTransforms.push_back(shadowProj * glm::lookAt(pointLight.position, pointLight.position + glm::vec3(-1.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f)));
-        shadowTransforms.push_back(shadowProj * glm::lookAt(pointLight.position, pointLight.position + glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f)));
-        shadowTransforms.push_back(shadowProj * glm::lookAt(pointLight.position, pointLight.position + glm::vec3(0.0f, -1.0f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f)));
-        shadowTransforms.push_back(shadowProj * glm::lookAt(pointLight.position, pointLight.position + glm::vec3(0.0f, 0.0f, 1.0f), glm::vec3(0.0f, -1.0f, 0.0f)));
-        shadowTransforms.push_back(shadowProj * glm::lookAt(pointLight.position, pointLight.position + glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.0f, -1.0f, 0.0f)));
+        if (!normal) {
+            // 0. create depth cubemap transformation matrices
+            // -----------------------------------------------
+            float near_plane = 1.0f;
+            float far_plane = 25.0f;
+            glm::mat4 shadowProj = glm::perspective(glm::radians(90.0f), (float)SHADOW_WIDTH / (float)SHADOW_HEIGHT, near_plane, far_plane);
+            std::vector<glm::mat4> shadowTransforms;
+            shadowTransforms.push_back(shadowProj * glm::lookAt(pointLight.position, pointLight.position + glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f)));
+            shadowTransforms.push_back(shadowProj * glm::lookAt(pointLight.position, pointLight.position + glm::vec3(-1.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f)));
+            shadowTransforms.push_back(shadowProj * glm::lookAt(pointLight.position, pointLight.position + glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f)));
+            shadowTransforms.push_back(shadowProj * glm::lookAt(pointLight.position, pointLight.position + glm::vec3(0.0f, -1.0f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f)));
+            shadowTransforms.push_back(shadowProj * glm::lookAt(pointLight.position, pointLight.position + glm::vec3(0.0f, 0.0f, 1.0f), glm::vec3(0.0f, -1.0f, 0.0f)));
+            shadowTransforms.push_back(shadowProj * glm::lookAt(pointLight.position, pointLight.position + glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.0f, -1.0f, 0.0f)));
 
-        // 1. render scene to depth cubemap
-        // --------------------------------
-        glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
-        glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
-        glClear(GL_DEPTH_BUFFER_BIT);
-        simpleDepthShader.use();
-        for (unsigned int i = 0; i < 6; ++i)
-            simpleDepthShader.setMat4("shadowMatrices[" + std::to_string(i) + "]", shadowTransforms[i]);
-        simpleDepthShader.setFloat("far_plane", far_plane);
-        simpleDepthShader.setVec3("lightPos", pointLight.position);
-        simpleDepthShader.setMat4("projection", projection);
-        simpleDepthShader.setMat4("view", view);
-        castle.render(&simpleDepthShader);
-        renderScene(&simpleDepthShader);
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+            // 1. render scene to depth cubemap
+            // --------------------------------
+            glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
+            glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
+            glClear(GL_DEPTH_BUFFER_BIT);
+            simpleDepthShader.use();
+            for (unsigned int i = 0; i < 6; ++i)
+                simpleDepthShader.setMat4("shadowMatrices[" + std::to_string(i) + "]", shadowTransforms[i]);
+            simpleDepthShader.setFloat("far_plane", far_plane);
+            simpleDepthShader.setVec3("lightPos", pointLight.position);
+            simpleDepthShader.setMat4("projection", projection);
+            simpleDepthShader.setMat4("view", view);
+            castle.render(&simpleDepthShader);
+            renderScene(&simpleDepthShader);
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-        // 2. render scene as normal 
-        // -------------------------
-        glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        simpleShader.use();
-        simpleShader.setInt("depthMap", 1);
-        simpleShader.setFloat("far_plane", far_plane);
-        glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_CUBE_MAP, depthCubemap);
+            // 2. render scene as normal
+            // -------------------------
+            glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            simpleShader.use();
+            simpleShader.setInt("depthMap", 1);
+            simpleShader.setFloat("far_plane", far_plane);
+            glActiveTexture(GL_TEXTURE1);
+            glBindTexture(GL_TEXTURE_CUBE_MAP, depthCubemap);
 
 
-        // don't forget to enable shader before setting uniforms
-//        pointLight.position = glm::vec3(0.0f, 5.0f, 0.0f);
-        simpleShader.setVec3("pointLight.position", pointLight.position);
-        simpleShader.setVec3("pointLight.ambient", pointLight.ambient);
-        simpleShader.setVec3("pointLight.diffuse", pointLight.diffuse);
-        simpleShader.setVec3("pointLight.specular", pointLight.specular);
-        simpleShader.setFloat("pointLight.constant", pointLight.constant);
-        simpleShader.setFloat("pointLight.linear", pointLight.linear);
-        simpleShader.setFloat("pointLight.quadratic", pointLight.quadratic);
-        simpleShader.setVec3("viewPosition", programState->camera.Position);
-        simpleShader.setFloat("material.shininess", 32.0f);
-        simpleShader.setMat4("projection", projection);
-        simpleShader.setMat4("view", view);
+            simpleShader.setVec3("pointLight.position", pointLight.position);
+            simpleShader.setVec3("pointLight.ambient", pointLight.ambient);
+            simpleShader.setVec3("pointLight.diffuse", pointLight.diffuse);
+            simpleShader.setVec3("pointLight.specular", pointLight.specular);
+            simpleShader.setFloat("pointLight.constant", pointLight.constant);
+            simpleShader.setFloat("pointLight.linear", pointLight.linear);
+            simpleShader.setFloat("pointLight.quadratic", pointLight.quadratic);
+            simpleShader.setVec3("viewPosition", programState->camera.Position);
+            simpleShader.setFloat("material.shininess", 32.0f);
+            simpleShader.setMat4("projection", projection);
+            simpleShader.setMat4("view", view);
 
-        for (int i = 0; i < 2; i++) {
-            string sl = "spotLights[" + to_string(i) + "].";
-            simpleShader.setVec3 (sl + "position", spotLights[i].position);
-            simpleShader.setVec3 (sl + "direction", spotLights[i].direction);
-            simpleShader.setVec3 (sl + "ambient", spotLights[i].ambient);
-            simpleShader.setVec3 (sl + "diffuse", spotLights[i].diffuse);
-            simpleShader.setVec3 (sl + "specular", spotLights[i].specular);
-            simpleShader.setFloat(sl + "constant", spotLights[i].constant);
-            simpleShader.setFloat(sl + "linear", spotLights[i].linear);
-            simpleShader.setFloat(sl + "quadratic", spotLights[i].quadratic);
-            simpleShader.setFloat(sl + "cutOff", spotLights[i].cutOff);
-            simpleShader.setFloat(sl + "outerCutOff", spotLights[i].outerCutOff);
+            for (int i = 0; i < 2; i++) {
+                string sl = "spotLights[" + to_string(i) + "].";
+                simpleShader.setVec3 (sl + "position", spotLights[i].position);
+                simpleShader.setVec3 (sl + "direction", spotLights[i].direction);
+                simpleShader.setVec3 (sl + "ambient", spotLights[i].ambient);
+                simpleShader.setVec3 (sl + "diffuse", spotLights[i].diffuse);
+                simpleShader.setVec3 (sl + "specular", spotLights[i].specular);
+                simpleShader.setFloat(sl + "constant", spotLights[i].constant);
+                simpleShader.setFloat(sl + "linear", spotLights[i].linear);
+                simpleShader.setFloat(sl + "quadratic", spotLights[i].quadratic);
+                simpleShader.setFloat(sl + "cutOff", spotLights[i].cutOff);
+                simpleShader.setFloat(sl + "outerCutOff", spotLights[i].outerCutOff);
+            }
+
+
+            glDisable(GL_CULL_FACE);
+            castle.render(&simpleShader);
+            glEnable(GL_CULL_FACE);
+            renderScene(&simpleShader);
         }
+        else {
+            normalShader.use();
+            normalShader.setVec3("pointLight.position", pointLight.position);
+            normalShader.setVec3("pointLight.ambient", pointLight.ambient);
+            normalShader.setVec3("pointLight.diffuse", pointLight.diffuse);
+            normalShader.setVec3("pointLight.specular", pointLight.specular);
+            normalShader.setFloat("pointLight.constant", pointLight.constant);
+            normalShader.setFloat("pointLight.linear", pointLight.linear);
+            normalShader.setFloat("pointLight.quadratic", pointLight.quadratic);
+            normalShader.setVec3("viewPosition", programState->camera.Position);
+            normalShader.setFloat("material.shininess", 32.0f);
+            normalShader.setMat4("projection", projection);
+            normalShader.setMat4("view", view);
+            normalShader.setVec3("lightPos", pointLight.position);
+            for (int i = 0; i < 2; i++) {
+                string sl = "spotLights[" + to_string(i) + "].";
+                normalShader.setVec3 (sl + "position", spotLights[i].position);
+                normalShader.setVec3 (sl + "direction", spotLights[i].direction);
+                normalShader.setVec3 (sl + "ambient", spotLights[i].ambient);
+                normalShader.setVec3 (sl + "diffuse", spotLights[i].diffuse);
+                normalShader.setVec3 (sl + "specular", spotLights[i].specular);
+                normalShader.setFloat(sl + "constant", spotLights[i].constant);
+                normalShader.setFloat(sl + "linear", spotLights[i].linear);
+                normalShader.setFloat(sl + "quadratic", spotLights[i].quadratic);
+                normalShader.setFloat(sl + "cutOff", spotLights[i].cutOff);
+                normalShader.setFloat(sl + "outerCutOff", spotLights[i].outerCutOff);
+                normalShader.setVec3("SpotLightPos[" + to_string(i) + "]", spotLights[i].position);
+            }
 
 
-        glDisable(GL_CULL_FACE);
-        castle.render(&simpleShader);
-        glEnable(GL_CULL_FACE);
-        renderScene(&simpleShader);
+            glDisable(GL_CULL_FACE);
+            castle.render(&simpleShader);
+            glEnable(GL_CULL_FACE);
+            renderScene(&simpleShader);
+        }
+        
 
         henri:
         if (len < 500) {
@@ -739,6 +776,8 @@ void key_callback(GLFWwindow *window, int key, int scancode, int action, int mod
             glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
         }
     }
+    if (key == GLFW_KEY_N && action == GLFW_PRESS)
+        normal ^= true;
 }
 
 void renderScene(Shader *shader) {

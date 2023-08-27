@@ -3,7 +3,7 @@ Projekat iz predmeta Racunarska grafika.
 
 ## Implementirane oblasti
 - Grupa A: Anti Aliasing, Cubemaps
-- Grupa B: Point Shadows
+- Grupa B: Point Shadows, Normal Mapping (promena moda je na N)
 
 ## Korisceni modeli
 https://free3d.com/3d-model/fantasy-castle-40715.html  
