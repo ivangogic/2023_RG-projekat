@@ -56,6 +56,22 @@ struct PointLight {
     float quadratic;
 };
 
+struct SpotLight {
+    glm::vec3 position;
+    glm::vec3 direction;
+    float cutOff;
+    float outerCutOff;
+
+    glm::vec3 ambient;
+    glm::vec3 diffuse;
+    glm::vec3 specular;
+
+    float constant;
+    float linear;
+    float quadratic;
+};
+vector<SpotLight> spotLights(2);
+
 struct ProgramState {
     glm::vec3 clearColor = glm::vec3(0);
     bool ImGuiEnabled = false;
@@ -248,6 +264,7 @@ int main() {
     rock.translate(glm::vec3(9, 0, 13));
     objects.push_back(&rock);
 
+
     PointLight& pointLight = programState->pointLight;
     pointLight.position = glm::vec3( 0.0f, 5.0, 5.0);
     pointLight.ambient = glm::vec3(1.0);
@@ -257,6 +274,36 @@ int main() {
     pointLight.constant = 1.0f;
     pointLight.linear = 0.09f;
     pointLight.quadratic = 0.032f;
+
+
+    // spotlights
+    glm::vec3 origin = glm::vec3(0.0f, 6.0f, -4.0f);
+    glm::vec3 pos0 = glm::vec3(8.0, 3.0, 1.0);
+    glm::vec3 pos1 = glm::vec3(-8.0, 3.0, 1.0);
+    glm::vec3 dir1 = normalize(origin - pos1);
+    glm::vec3 dir0 = normalize(origin - pos0);
+
+    spotLights[0].position = pos0;
+    spotLights[0].direction = dir0;
+    spotLights[0].ambient = glm::vec3(0.0f, 0.0f, 1.0f);
+    spotLights[0].diffuse = glm::vec3(1.0f);
+    spotLights[0].specular = glm::vec3(0.0f, 0.5f, 0.0f);
+    spotLights[0].constant = 1.0;
+    spotLights[0].linear = 0.09;
+    spotLights[0].quadratic = 0.032;
+    spotLights[0].cutOff = glm::cos(glm::radians(45.0f));
+    spotLights[0].outerCutOff = glm::cos(glm::radians(60.0f));
+
+    spotLights[1].position = pos1;
+    spotLights[1].direction = dir1;
+    spotLights[1].ambient = glm::vec3(0.0f, 0.0f, 1.0f);
+    spotLights[1].diffuse = glm::vec3(1.0f);
+    spotLights[1].specular = glm::vec3(0.0f, 0.5f, 0.0f);
+    spotLights[1].constant = 1.0;
+    spotLights[1].linear = 0.09;
+    spotLights[1].quadratic = 0.032;
+    spotLights[1].cutOff = glm::cos(glm::radians(45.0f));
+    spotLights[1].outerCutOff = glm::cos(glm::radians(60.0f));
 
 
 
@@ -340,6 +387,20 @@ int main() {
         simpleShader.setFloat("material.shininess", 32.0f);
         simpleShader.setMat4("projection", projection);
         simpleShader.setMat4("view", view);
+
+        for (int i = 0; i < 2; i++) {
+            string sl = "spotLights[" + to_string(i) + "].";
+            simpleShader.setVec3 (sl + "position", spotLights[i].position);
+            simpleShader.setVec3 (sl + "direction", spotLights[i].direction);
+            simpleShader.setVec3 (sl + "ambient", spotLights[i].ambient);
+            simpleShader.setVec3 (sl + "diffuse", spotLights[i].diffuse);
+            simpleShader.setVec3 (sl + "specular", spotLights[i].specular);
+            simpleShader.setFloat(sl + "constant", spotLights[i].constant);
+            simpleShader.setFloat(sl + "linear", spotLights[i].linear);
+            simpleShader.setFloat(sl + "quadratic", spotLights[i].quadratic);
+            simpleShader.setFloat(sl + "cutOff", spotLights[i].cutOff);
+            simpleShader.setFloat(sl + "outerCutOff", spotLights[i].outerCutOff);
+        }
 
 
         glDisable(GL_CULL_FACE);
