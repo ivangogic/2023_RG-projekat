@@ -28,6 +28,7 @@ void processInput(GLFWwindow *window);
 
 void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods);
 bool normal = false;
+int speed = 1;
 
 void renderScene(Shader *shader);
 vector<Object *> objects;
@@ -485,116 +486,132 @@ int main() {
 
         henri:
         if (len < 500) {
-            henri.translate(glm::vec3(0.0f, 0.0f, 2.0f));
-            henri_curr += glm::vec3(0.0f, 0.0f, 2.0f);
-            len += 2;
+            for (int i = 0; i < speed && len < 500; i++) {
+                henri.translate(glm::vec3(0.0f, 0.0f, 2.0f));
+                henri_curr += glm::vec3(0.0f, 0.0f, 2.0f);
+                len += 2;
+            }
         }
         else if (curr < total) {
-            curr += 1.0f;
-            float angle = 90.0f * curr / total;
-            auto henri_pos = center + glm::vec3(-radius * cos(glm::radians(angle)), 0.0f, radius *  sin(glm::radians(angle)));
-            henri_curr = henri_pos;
-            auto henri_pos1 = glm::vec3(
-                    -henri_pos.z * sin(glm::radians(angle)) + henri_pos.x * cos(glm::radians(angle)),
-                    henri_pos.y,
-                    henri_pos.z * cos(glm::radians(angle)) + henri_pos.x * sin(glm::radians(angle))
-                    );
+            for (int i = 0; i < speed && curr < total; i++) {
+                curr += 1.0f;
+                float angle = 90.0f * curr / total;
+                auto henri_pos = center + glm::vec3(-radius * cos(glm::radians(angle)), 0.0f, radius *  sin(glm::radians(angle)));
+                henri_curr = henri_pos;
+                auto henri_pos1 = glm::vec3(
+                        -henri_pos.z * sin(glm::radians(angle)) + henri_pos.x * cos(glm::radians(angle)),
+                        henri_pos.y,
+                        henri_pos.z * cos(glm::radians(angle)) + henri_pos.x * sin(glm::radians(angle))
+                );
 
-            henri.setPosition(henri_pos1);
+                henri.setPosition(henri_pos1);
 
-            henri.setRotation(glm::rotate(glm::mat4(1), glm::radians(angle), glm::vec3(0.0, 1.0, 0.0)));
+                henri.setRotation(glm::rotate(glm::mat4(1), glm::radians(angle), glm::vec3(0.0, 1.0, 0.0)));
+            }
         }
         else if (len < 800) {
-            float angle = 90.0f;
-            henri_curr += glm::vec3(2.0f, 0.0f, 0.0f);
+            for (int i = 0; i < speed && len < 800; i++) {
+                float angle = 90.0f;
+                henri_curr += glm::vec3(2.0f, 0.0f, 0.0f);
 
-            auto henri_pos1 = glm::vec3(
-                    -henri_curr.z * sin(glm::radians(angle)) + henri_curr.x * cos(glm::radians(angle)),
-                    henri_curr.y,
-                    henri_curr.z * cos(glm::radians(angle)) + henri_curr.x * sin(glm::radians(angle))
-            );
+                auto henri_pos1 = glm::vec3(
+                        -henri_curr.z * sin(glm::radians(angle)) + henri_curr.x * cos(glm::radians(angle)),
+                        henri_curr.y,
+                        henri_curr.z * cos(glm::radians(angle)) + henri_curr.x * sin(glm::radians(angle))
+                );
 
-            henri.setPosition(henri_pos1);
-            henri.setRotation(glm::rotate(glm::mat4(1), glm::radians(angle), glm::vec3(0.0, 1.0, 0.0)));
+                henri.setPosition(henri_pos1);
+                henri.setRotation(glm::rotate(glm::mat4(1), glm::radians(angle), glm::vec3(0.0, 1.0, 0.0)));
 
-            len += 2;
+                len += 2;
+            }
         }
         else if (curr1 < total1) {
-            if (stone_wait < 50) {
-                stone_wait++;
-                goto end;
+            for (int i = 0; i < speed && curr1 < total1; i++) {
+                if (stone_wait < 50) {
+                    stone_wait++;
+                    goto end;
+                }
+                curr1 += 1.0f;
+                float angle = 90.0f + 180.0f * curr1 / total1;
+                auto henri_pos1 = glm::vec3(
+                        -henri_curr.z * sin(glm::radians(angle)) + henri_curr.x * cos(glm::radians(angle)),
+                        henri_curr.y,
+                        henri_curr.z * cos(glm::radians(angle)) + henri_curr.x * sin(glm::radians(angle))
+                );
+
+                henri.setPosition(henri_pos1);
+
+                henri.setRotation(glm::rotate(glm::mat4(1), glm::radians(angle), glm::vec3(0.0, 1.0, 0.0)));
             }
-            curr1 += 1.0f;
-            float angle = 90.0f + 180.0f * curr1 / total1;
-            auto henri_pos1 = glm::vec3(
-                    -henri_curr.z * sin(glm::radians(angle)) + henri_curr.x * cos(glm::radians(angle)),
-                    henri_curr.y,
-                    henri_curr.z * cos(glm::radians(angle)) + henri_curr.x * sin(glm::radians(angle))
-            );
-
-            henri.setPosition(henri_pos1);
-
-            henri.setRotation(glm::rotate(glm::mat4(1), glm::radians(angle), glm::vec3(0.0, 1.0, 0.0)));
         }
         else if (len < 1100) {
-            float angle = 270.0f;
-            henri_curr -= glm::vec3(2.0f, 0.0f, 0.0f);
+            for (int i = 0; i < speed && len < 1100; i++) {
+                float angle = 270.0f;
+                henri_curr -= glm::vec3(2.0f, 0.0f, 0.0f);
 
-            auto henri_pos1 = glm::vec3(
-                    -henri_curr.z * sin(glm::radians(angle)) + henri_curr.x * cos(glm::radians(angle)),
-                    henri_curr.y,
-                    henri_curr.z * cos(glm::radians(angle)) + henri_curr.x * sin(glm::radians(angle))
-            );
+                auto henri_pos1 = glm::vec3(
+                        -henri_curr.z * sin(glm::radians(angle)) + henri_curr.x * cos(glm::radians(angle)),
+                        henri_curr.y,
+                        henri_curr.z * cos(glm::radians(angle)) + henri_curr.x * sin(glm::radians(angle))
+                );
 
-            henri.setPosition(henri_pos1);
-            henri.setRotation(glm::rotate(glm::mat4(1), glm::radians(angle), glm::vec3(0.0, 1.0, 0.0)));
+                henri.setPosition(henri_pos1);
+                henri.setRotation(glm::rotate(glm::mat4(1), glm::radians(angle), glm::vec3(0.0, 1.0, 0.0)));
 
-            len += 2;
+                len += 2;
+            }
         }
         else if (curr2 < total2) {
-            curr2 += 1.0f;
-            float angle = 270.0f - 90.0f * curr2 / total2;
-            float circle_angle = 90.0f - 90.0f * curr2 / total2;
+            for (int i = 0; i < speed && curr2 < total2; i++) {
+                curr2 += 1.0f;
+                float angle = 270.0f - 90.0f * curr2 / total2;
+                float circle_angle = 90.0f - 90.0f * curr2 / total2;
 
-            auto henri_pos = center + glm::vec3(-radius * cos(glm::radians(circle_angle)), 0.0f, radius *  sin(glm::radians(circle_angle)));
-            henri_curr = henri_pos;
-            auto henri_pos1 = glm::vec3(
-                    -henri_pos.z * sin(glm::radians(angle)) + henri_pos.x * cos(glm::radians(angle)),
-                    henri_pos.y,
-                    henri_pos.z * cos(glm::radians(angle)) + henri_pos.x * sin(glm::radians(angle))
-            );
+                auto henri_pos = center + glm::vec3(-radius * cos(glm::radians(circle_angle)), 0.0f, radius *  sin(glm::radians(circle_angle)));
+                henri_curr = henri_pos;
+                auto henri_pos1 = glm::vec3(
+                        -henri_pos.z * sin(glm::radians(angle)) + henri_pos.x * cos(glm::radians(angle)),
+                        henri_pos.y,
+                        henri_pos.z * cos(glm::radians(angle)) + henri_pos.x * sin(glm::radians(angle))
+                );
 
-            henri.setPosition(henri_pos1);
+                henri.setPosition(henri_pos1);
 
-            henri.setRotation(glm::rotate(glm::mat4(1), glm::radians(angle), glm::vec3(0.0, 1.0, 0.0)));
+                henri.setRotation(glm::rotate(glm::mat4(1), glm::radians(angle), glm::vec3(0.0, 1.0, 0.0)));
+            }
         }
         else if (len < 1600) {
-            float angle = 180.0f;
-            henri_curr -= glm::vec3(0.0f, 0.0f, 2.0f);
+            for (int i = 0; i < speed && len < 1600; i++) {
+                float angle = 180.0f;
+                henri_curr -= glm::vec3(0.0f, 0.0f, 2.0f);
 
-            auto henri_pos1 = glm::vec3(
-                    -henri_curr.z * sin(glm::radians(angle)) + henri_curr.x * cos(glm::radians(angle)),
-                    henri_curr.y,
-                    henri_curr.z * cos(glm::radians(angle)) + henri_curr.x * sin(glm::radians(angle))
-            );
+                auto henri_pos1 = glm::vec3(
+                        -henri_curr.z * sin(glm::radians(angle)) + henri_curr.x * cos(glm::radians(angle)),
+                        henri_curr.y,
+                        henri_curr.z * cos(glm::radians(angle)) + henri_curr.x * sin(glm::radians(angle))
+                );
 
-            henri.setPosition(henri_pos1);
-            henri.setRotation(glm::rotate(glm::mat4(1), glm::radians(angle), glm::vec3(0.0, 1.0, 0.0)));
+                henri.setPosition(henri_pos1);
+                henri.setRotation(glm::rotate(glm::mat4(1), glm::radians(angle), glm::vec3(0.0, 1.0, 0.0)));
 
-            len += 2;
+                len += 2;
+            }
         }
         else if (curr3 < total3) {
-            curr3 += 1.0f;
-            float angle = 180.0f + 180.0f * curr3 / total3;
-            auto henri_pos1 = glm::vec3(
-                    -henri_curr.z * sin(glm::radians(angle)) + henri_curr.x * cos(glm::radians(angle)),
-                    henri_curr.y,
-                    henri_curr.z * cos(glm::radians(angle)) + henri_curr.x * sin(glm::radians(angle))
-            );
+            for (int i = 0; i <  speed && curr3 < total3; i++) {
+                curr3 += 1.0f;
+                float angle = 180.0f + 180.0f * curr3 / total3;
+                auto henri_pos1 = glm::vec3(
+                        -henri_curr.z * sin(glm::radians(angle)) + henri_curr.x * cos(glm::radians(angle)),
+                        henri_curr.y,
+                        henri_curr.z * cos(glm::radians(angle)) + henri_curr.x * sin(glm::radians(angle))
+                );
 
-            henri.setPosition(henri_pos1);
+                henri.setPosition(henri_pos1);
 
-            henri.setRotation(glm::rotate(glm::mat4(1), glm::radians(angle), glm::vec3(0.0, 1.0, 0.0)));
+                henri.setRotation(glm::rotate(glm::mat4(1), glm::radians(angle), glm::vec3(0.0, 1.0, 0.0)));
+            }
         }
         else {
             henri.setRotation(glm::mat4(1.0f));
@@ -741,6 +758,10 @@ void key_callback(GLFWwindow *window, int key, int scancode, int action, int mod
     }
     if (key == GLFW_KEY_N && action == GLFW_PRESS)
         normal ^= true;
+    if (key == GLFW_KEY_KP_ADD && action == GLFW_PRESS && speed < 10)
+        speed += 1;
+    if (key == GLFW_KEY_KP_SUBTRACT && action == GLFW_PRESS && speed > 1)
+        speed -= 1;
 }
 
 void renderScene(Shader *shader) {
