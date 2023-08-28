@@ -84,41 +84,7 @@ struct ProgramState {
     float backpackScale = 1.0f;
     PointLight pointLight;
     ProgramState() : camera(glm::vec3(0.0f, 10.0f, -8.0f)) {}
-
-    void SaveToFile(std::string filename);
-
-    void LoadFromFile(std::string filename);
 };
-
-void ProgramState::SaveToFile(std::string filename) {
-    std::ofstream out(filename);
-    out << clearColor.r << '\n'
-        << clearColor.g << '\n'
-        << clearColor.b << '\n'
-        << ImGuiEnabled << '\n'
-        << camera.Position.x << '\n'
-        << camera.Position.y << '\n'
-        << camera.Position.z << '\n'
-        << camera.Front.x << '\n'
-        << camera.Front.y << '\n'
-        << camera.Front.z << '\n';
-}
-
-void ProgramState::LoadFromFile(std::string filename) {
-    std::ifstream in(filename);
-    if (in) {
-        in >> clearColor.r
-           >> clearColor.g
-           >> clearColor.b
-           >> ImGuiEnabled
-           >> camera.Position.x
-           >> camera.Position.y
-           >> camera.Position.z
-           >> camera.Front.x
-           >> camera.Front.y
-           >> camera.Front.z;
-    }
-}
 
 ProgramState *programState;
 
@@ -164,7 +130,6 @@ int main() {
     //stbi_set_flip_vertically_on_load(true);
 
     programState = new ProgramState;
-    //programState->LoadFromFile("resources/program_state.txt");
     if (programState->ImGuiEnabled) {
         glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
     }
@@ -525,7 +490,6 @@ int main() {
             len += 2;
         }
         else if (curr < total) {
-//            henri.translate(glm::vec3(2.0f, 0.0f, 2.0f));
             curr += 1.0f;
             float angle = 90.0f * curr / total;
             auto henri_pos = center + glm::vec3(-radius * cos(glm::radians(angle)), 0.0f, radius *  sin(glm::radians(angle)));
@@ -671,7 +635,6 @@ int main() {
         glfwPollEvents();
     }
 
-    //programState->SaveToFile("resources/program_state.txt");
     delete programState;
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();

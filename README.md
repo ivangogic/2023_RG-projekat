@@ -1,5 +1,9 @@
 # RG projekat
 Projekat iz predmeta Racunarska grafika. 
+<p>
+  <img src="resources/screenshots/screen1.jpg" width="49.5%" alt="point shadows"/>
+  <img src="resources/screenshots/screen2.jpg" width="49.5%" alt="normal mapping"/>
+</p>
 
 ## Implementirane oblasti
 - Grupa A: Anti Aliasing, Cubemaps
